@@ -1075,6 +1075,7 @@
   padding: 12px 14px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  text-align: left;
 }
 
 .perk-select-item:hover {
@@ -1087,44 +1088,173 @@
   flex-shrink: 0;
 }
 
+.perk-select-info {
+  flex: 1;
+}
+
 .perk-select-name {
   font-size: 0.9rem;
   font-weight: 700;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.perk-current-level {
+  font-size: 0.7rem;
+  background-color: #44cc44;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.perk-next-level {
+  font-size: 0.7rem;
+  background-color: #ffd700;
+  color: #222;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
 .perk-select-desc {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #aaa;
   margin-top: 2px;
+}
+
+.perk-select-effect {
+  font-size: 0.8rem;
+  color: #ffd700;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+.perk-select-empty {
+  text-align: center;
+  color: #aaa;
+  padding: 20px;
+}
+
+.perk-select-empty .menu-btn {
+  margin-top: 12px;
 }
 
 /* ===== 스테이지 선택 - 퍽 표시 ===== */
 .perks-display {
   margin-top: 12px;
   text-align: center;
+  width: 100%;
+  max-width: 320px;
 }
 
-.perks-display h4 {
-  font-size: 0.85rem;
-  color: #ffd700;
-  margin-bottom: 6px;
-}
-
-.perks-list {
+.perks-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 8px;
   justify-content: center;
 }
 
-.perk-badge {
-  background: rgba(255,215,0,0.15);
-  border: 1px solid rgba(255,215,0,0.3);
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 0.72rem;
+.perk-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background-color: #2a2a40;
+  border: 1px solid #44cc44;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.perk-icon-btn.selected {
+  border-color: #ffd700;
+  background-color: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.perk-icon-btn:hover {
+  border-color: #ffd700;
+}
+
+.perk-icon {
+  font-size: 0.9rem;
+}
+
+.perk-icon-level {
+  font-size: 0.65rem;
+  color: #44cc44;
+  font-weight: bold;
+}
+
+.perks-empty {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* 선택된 특성 상세 설명 */
+.perk-detail-box {
+  margin-top: 12px;
+  background-color: #2a2a40;
+  border: 2px solid #ffd700;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: left;
+}
+
+.perk-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.perk-detail-name {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #fff;
+  flex: 1;
+}
+
+.perk-detail-level {
+  font-size: 0.7rem;
   color: #ffd700;
+  background-color: rgba(255, 215, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.perk-detail-desc {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3a3a50;
+}
+
+.perk-detail-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perk-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background-color: #1a1a2a;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.perk-detail-row.active {
+  background-color: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+  font-weight: bold;
 }
 
 /* ===== 스테이지 아이콘 / 피처 아이콘 ===== */
@@ -1151,4 +1281,276 @@
   border-radius: 50%;
   border: 1px solid rgba(0,0,0,0.5);
   z-index: 3;
+}
+
+/* ===== 게임 컨트롤 (일시정지, 속도) ===== */
+.game-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #3a3a50;
+  color: #fff;
+  border: 2px solid #555;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-btn:hover:not(:disabled) {
+  background-color: #4a4a60;
+  border-color: #4a90d9;
+}
+
+.control-btn.active {
+  background-color: #4a90d9;
+  border-color: #4a90d9;
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.speed-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.speed-btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: #3a3a50;
+  color: #fff;
+  border: 2px solid #555;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.speed-btn:hover:not(:disabled) {
+  background-color: #4a4a60;
+  border-color: #ffd700;
+}
+
+.speed-btn.active {
+  background-color: #ffd700;
+  color: #222;
+  border-color: #ffd700;
+}
+
+.speed-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== 버전 표시 ===== */
+.version-display {
+  margin-top: 12px;
+  font-size: 0.7rem;
+  color: #666;
+  text-align: center;
+}
+
+/* ===== 메뉴 하단 버튼 그룹 ===== */
+.menu-bottom-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.reset-data-btn {
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  background-color: #553333;
+  color: #ff9999;
+  border: 2px solid #774444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-data-btn:hover {
+  background-color: #774444;
+  border-color: #ff6666;
+}
+
+/* ===== 고유 특성 설명 패널 ===== */
+.perk-info-btn {
+  margin-left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #4a4a60;
+  color: #ffd700;
+  border: 1px solid #ffd700;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.perk-info-btn:hover {
+  background-color: #ffd700;
+  color: #222;
+}
+
+.perk-level-badge {
+  background-color: #ffd700;
+  color: #222;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.perks-empty {
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
+}
+
+.perk-info-panel {
+  background-color: #2a2a40;
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 14px;
+  width: 100%;
+  max-width: 340px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.perk-info-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.perk-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perk-info-item {
+  background-color: #1a1a2a;
+  border-radius: 8px;
+  border: 1px solid #3a3a50;
+  overflow: hidden;
+}
+
+.perk-info-item.owned {
+  border-color: #44cc44;
+}
+
+.perk-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.perk-info-header:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.perk-info-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.perk-info-name {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #fff;
+  flex: 1;
+}
+
+.perk-info-level {
+  font-size: 0.7rem;
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #2a2a40;
+}
+
+.perk-info-level.active {
+  color: #44cc44;
+  background-color: rgba(68, 204, 68, 0.2);
+  font-weight: bold;
+}
+
+.perk-info-arrow {
+  font-size: 0.6rem;
+  color: #666;
+  margin-left: 4px;
+}
+
+.perk-info-detail {
+  padding: 0 12px 12px 12px;
+  border-top: 1px solid #3a3a50;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.perk-info-desc {
+  font-size: 0.75rem;
+  color: #aaa;
+  padding: 10px 0 8px 0;
+}
+
+.perk-info-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perk-level-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  background-color: #2a2a40;
+  border-radius: 4px;
+  font-size: 0.72rem;
+}
+
+.perk-level-row.active {
+  background-color: rgba(255, 215, 0, 0.15);
+}
+
+.perk-level-label {
+  color: #888;
+  min-width: 32px;
+}
+
+.perk-level-row.active .perk-level-label {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.perk-level-value {
+  color: #ccc;
+}
+
+.perk-level-row.active .perk-level-value {
+  color: #fff;
+  font-weight: bold;
 }

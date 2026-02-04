@@ -230,16 +230,73 @@ const TRAIT_EFFECTS = {
 const getTraitUpgradeCost = (currentLevel) => 60 + currentLevel * 50;
 const getHeroUpgradeCost = (heroLevel) => 200 + heroLevel * 150;
 
-// 고유 특성(퍽) 시스템
+// 고유 특성(퍽) 시스템 - 최대 레벨 3
+const PERK_MAX_LEVEL = 3;
 const PERKS = [
-  { id: 'startGold', name: '시작 골드 +100', icon: '💰', desc: '게임 시작 시 골드 +100' },
-  { id: 'towerDamage', name: '공격력 +10%', icon: '⚔️', desc: '모든 타워 공격력 10% 증가' },
-  { id: 'towerRange', name: '사거리 +10%', icon: '🔭', desc: '모든 타워 사거리 10% 증가' },
-  { id: 'towerSpeed', name: '공격속도 +10%', icon: '⚡', desc: '모든 타워 공격속도 10% 증가' },
-  { id: 'baseHp', name: '기지 체력 +20', icon: '❤️', desc: '기지 최대 체력 +20' },
-  { id: 'goldIncome', name: '골드 수입 +15%', icon: '🪙', desc: '적 처치 시 골드 15% 추가' },
-  { id: 'traitDiscount', name: '특성 할인 -20%', icon: '✨', desc: '특성 비용 20% 감소' },
-  { id: 'towerDiscount', name: '타워 할인 -10G', icon: '🔧', desc: '타워 설치 비용 10 감소' },
+  {
+    id: 'startGold',
+    name: '시작 골드',
+    icon: '💰',
+    desc: '게임 시작 시 추가 골드',
+    levels: ['+100G', '+200G', '+300G'],
+    values: [100, 200, 300]
+  },
+  {
+    id: 'towerDamage',
+    name: '공격력 강화',
+    icon: '⚔️',
+    desc: '모든 타워 공격력 증가',
+    levels: ['+10%', '+20%', '+30%'],
+    values: [0.1, 0.2, 0.3]
+  },
+  {
+    id: 'towerRange',
+    name: '사거리 강화',
+    icon: '🔭',
+    desc: '모든 타워 사거리 증가',
+    levels: ['+10%', '+20%', '+30%'],
+    values: [0.1, 0.2, 0.3]
+  },
+  {
+    id: 'towerSpeed',
+    name: '공격속도 강화',
+    icon: '⚡',
+    desc: '모든 타워 공격속도 증가',
+    levels: ['+10%', '+20%', '+30%'],
+    values: [0.1, 0.2, 0.3]
+  },
+  {
+    id: 'baseHp',
+    name: '기지 체력',
+    icon: '❤️',
+    desc: '기지 최대 체력 증가',
+    levels: ['+20', '+40', '+60'],
+    values: [20, 40, 60]
+  },
+  {
+    id: 'goldIncome',
+    name: '골드 수입',
+    icon: '🪙',
+    desc: '적 처치 시 추가 골드',
+    levels: ['+15%', '+30%', '+45%'],
+    values: [0.15, 0.30, 0.45]
+  },
+  {
+    id: 'traitDiscount',
+    name: '특성 할인',
+    icon: '✨',
+    desc: '타워 특성 비용 감소',
+    levels: ['-20%', '-35%', '-50%'],
+    values: [0.2, 0.35, 0.5]
+  },
+  {
+    id: 'towerDiscount',
+    name: '타워 할인',
+    icon: '🔧',
+    desc: '타워 설치 비용 감소',
+    levels: ['-10G', '-20G', '-30G'],
+    values: [10, 20, 30]
+  },
 ];
 
 // 스테이지별 신규 해금 내용
@@ -351,13 +408,54 @@ let enemyIdCounter = 0;
 let projectileIdCounter = 0;
 let dmgTextIdCounter = 0;
 
+const GAME_VERSION = '1.5';
+const SAVE_KEY = 'core_guardian_save';
+
+// 저장 데이터 불러오기
+const loadSaveData = () => {
+  try {
+    const saved = localStorage.getItem(SAVE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return {
+        unlockedStagesByDifficulty: data.unlockedStagesByDifficulty || { easy: [1], normal: [1], hard: [1] },
+        perks: data.perks || [],
+        soundEnabled: data.soundEnabled !== undefined ? data.soundEnabled : true,
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load save data:', e);
+  }
+  return null;
+};
+
+// 데이터 저장
+const saveGameData = (unlockedStagesByDifficulty, perks, soundEnabled) => {
+  try {
+    const data = { unlockedStagesByDifficulty, perks, soundEnabled, version: GAME_VERSION };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('Failed to save game data:', e);
+  }
+};
+
+// 초기 저장 데이터 로드 (한 번만 실행)
+const initialSaveData = loadSaveData();
+
 function GameBoard() {
   const [gameState, setGameState] = useState('menu');
   const [difficulty, setDifficulty] = useState('normal');
   const [currentStage, setCurrentStage] = useState(1);
-  const [unlockedStages, setUnlockedStages] = useState([1]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // 난이도별 스테이지 해금 상태
+  const [unlockedStagesByDifficulty, setUnlockedStagesByDifficulty] = useState(
+    initialSaveData?.unlockedStagesByDifficulty || { easy: [1], normal: [1], hard: [1] }
+  );
+  const [soundEnabled, setSoundEnabled] = useState(initialSaveData?.soundEnabled ?? true);
   const [tutorialPage, setTutorialPage] = useState(0);
+
+  // 일시정지 & 속도 조절
+  const [isPaused, setIsPaused] = useState(false);
+  const [gameSpeed, setGameSpeed] = useState(1);
 
   const [, forceUpdate] = useState(0);
   const [towers, setTowers] = useState([]);
@@ -374,12 +472,20 @@ function GameBoard() {
   const [cellSize, setCellSize] = useState(32);
 
   // 퍽 시스템
-  const [perks, setPerks] = useState([]);
+  const [perks, setPerks] = useState(initialSaveData?.perks || []);
   const [showPerkSelect, setShowPerkSelect] = useState(false);
   const [perkChoices, setPerkChoices] = useState([]);
 
+  // 자동 저장 (스테이지 해금, 퍽, 사운드 설정 변경 시)
+  useEffect(() => {
+    saveGameData(unlockedStagesByDifficulty, perks, soundEnabled);
+  }, [unlockedStagesByDifficulty, perks, soundEnabled]);
+
   // 스테이지 알림
   const [stageNotification, setStageNotification] = useState(null);
+
+  // 고유 특성 설명 (선택된 특성)
+  const [expandedPerkId, setExpandedPerkId] = useState(null);
 
   const boardRef = useRef(null);
   const enemiesRef = useRef([]);
@@ -394,8 +500,16 @@ function GameBoard() {
   const roundInProgressRef = useRef(false);
   const currentRoundRef = useRef(0);
   const lastShootTimeRef = useRef(0);
+  const isPausedRef = useRef(false);
+  const gameSpeedRef = useRef(1);
 
+  // 현재 난이도의 해금된 스테이지
+  const unlockedStages = unlockedStagesByDifficulty[difficulty] || [1];
   const difficultySettings = DIFFICULTY_SETTINGS[difficulty];
+
+  // isPaused, gameSpeed ref 동기화
+  isPausedRef.current = isPaused;
+  gameSpeedRef.current = gameSpeed;
   const maxTraitsPerTower = Math.min(currentStage, TRAIT_LIST.length);
   const maxEvolution = Math.min(Math.max(0, currentStage - 1), 3);
   const canUpgradeTraits = currentStage >= 6;
@@ -403,16 +517,26 @@ function GameBoard() {
   const canAddSecondaryType = currentStage >= 8;
   const traitMaxLevel = currentStage >= 7 ? 3 : currentStage >= 6 ? 2 : 1;
 
-  // 퍽 효과 계산
-  const perkCount = (id) => perks.filter(p => p === id).length;
-  const effectiveTowerCost = Math.max(10, TOWER_COST - perkCount('towerDiscount') * 10);
-  const effectiveStartGold = INITIAL_GOLD + perkCount('startGold') * 100;
-  const effectiveBaseHp = BASE_MAX_HP + perkCount('baseHp') * 20;
-  const perkTraitDiscount = Math.max(0.5, 1 - perkCount('traitDiscount') * 0.2);
-  const perkDmgMult = 1 + perkCount('towerDamage') * 0.1;
-  const perkRangeMult = 1 + perkCount('towerRange') * 0.1;
-  const perkSpdDiv = 1 + perkCount('towerSpeed') * 0.1;
-  const perkGoldMult = 1 + perkCount('goldIncome') * 0.15;
+  // 퍽 효과 계산 (레벨 기반)
+  const getPerkLevel = (id) => {
+    const perk = perks.find(p => p.id === id);
+    return perk ? perk.level : 0;
+  };
+  const getPerkValue = (id) => {
+    const level = getPerkLevel(id);
+    if (level === 0) return 0;
+    const perkDef = PERKS.find(p => p.id === id);
+    return perkDef ? perkDef.values[level - 1] : 0;
+  };
+
+  const effectiveTowerCost = Math.max(10, TOWER_COST - getPerkValue('towerDiscount'));
+  const effectiveStartGold = INITIAL_GOLD + getPerkValue('startGold');
+  const effectiveBaseHp = BASE_MAX_HP + getPerkValue('baseHp');
+  const perkTraitDiscount = Math.max(0.5, 1 - getPerkValue('traitDiscount'));
+  const perkDmgMult = 1 + getPerkValue('towerDamage');
+  const perkRangeMult = 1 + getPerkValue('towerRange');
+  const perkSpdDiv = 1 + getPerkValue('towerSpeed');
+  const perkGoldMult = 1 + getPerkValue('goldIncome');
 
   useEffect(() => {
     const updateCellSize = () => {
@@ -473,6 +597,8 @@ function GameBoard() {
     setShowTraitPanel(false);
     setShowSecondaryTypeSelect(false);
     setShowPerkSelect(false);
+    setIsPaused(false);
+    setGameSpeed(1);
   };
 
   const startGame = () => {
@@ -495,8 +621,28 @@ function GameBoard() {
     setGameState('menu');
   };
 
+  const resetAllData = () => {
+    if (window.confirm('모든 진행 상황이 초기화됩니다. 계속하시겠습니까?')) {
+      localStorage.removeItem(SAVE_KEY);
+      setUnlockedStagesByDifficulty({ easy: [1], normal: [1], hard: [1] });
+      setPerks([]);
+      playSoundEffect('click');
+    }
+  };
+
   const selectPerk = (perkId) => {
-    setPerks(prev => [...prev, perkId]);
+    setPerks(prev => {
+      const existing = prev.find(p => p.id === perkId);
+      if (existing) {
+        // 기존 퍽 레벨업
+        return prev.map(p =>
+          p.id === perkId ? { ...p, level: Math.min(p.level + 1, PERK_MAX_LEVEL) } : p
+        );
+      } else {
+        // 새 퍽 추가
+        return [...prev, { id: perkId, level: 1 }];
+      }
+    });
     setShowPerkSelect(false);
     playSoundEffect('upgrade');
   };
@@ -697,6 +843,7 @@ function GameBoard() {
     const stageMult = getStageMultiplier();
     // 스테이지 6+: 초반 라운드 쉽게, R5부터 급격히 상승
     // R5~R10: 1.3x, 1.8x, 2.5x, 4.0x, 7.0x (30%,80%,150%,300%,600%)
+    // R8~R10 (index 7~9): 20% 하향 적용
     const LATE_ROUND_MULTS = [1.3, 1.8, 2.5, 4.0, 7.0];
     let roundDiffMult = 1.0;
     if (currentStage >= 6) {
@@ -710,6 +857,11 @@ function GameBoard() {
       // 스테이지별 추가 배율: S7=1.2x, S8=1.5x, S9=2.0x
       const stageBonusMult = currentStage >= 9 ? 2.0 : currentStage >= 8 ? 1.5 : currentStage >= 7 ? 1.2 : 1.0;
       roundDiffMult *= stageBonusMult;
+
+      // R8~R10 (index 7~9) 난이도 20% 하향
+      if (roundIndex >= 7) {
+        roundDiffMult *= 0.8;
+      }
     }
     const hpMult = config.hpMult * stageMult * difficultySettings.enemyHpMult * roundDiffMult;
     const speedMult = (config.speedMult || 1.0) * (currentStage >= 6 ? (0.9 + Math.min(roundIndex / 9, 1) * 0.15) : 1.0);
@@ -772,14 +924,27 @@ function GameBoard() {
   useEffect(() => {
     if (gameState !== 'playing') return;
 
+    let lastTime = 0;
     const gameLoop = (currentTime) => {
       if (baseHpRef.current <= 0 || gameWon) return;
+
+      // 일시정지 상태면 프레임만 요청하고 종료
+      if (isPausedRef.current) {
+        lastTime = currentTime;
+        animationFrameRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
+      // 속도 조절을 위한 델타 타임 계산
+      const deltaTime = lastTime ? (currentTime - lastTime) * gameSpeedRef.current : 16;
+      lastTime = currentTime;
 
       const enemies = enemiesRef.current;
       const towers = towersRef.current;
       const projectiles = projectilesRef.current;
 
-      const spawnInterval = Math.max(350, 700 - currentRoundRef.current * 25);
+      const baseSpawnInterval = Math.max(350, 700 - currentRoundRef.current * 25);
+      const spawnInterval = baseSpawnInterval / gameSpeedRef.current;
       if (roundInProgressRef.current && spawnQueueRef.current.length > 0) {
         if (currentTime - lastSpawnTimeRef.current > spawnInterval) {
           spawnEnemy(spawnQueueRef.current.shift());
@@ -797,10 +962,17 @@ function GameBoard() {
           stopBgm();
           playSoundEffect('victory');
           if (currentStage < MAX_STAGES && !unlockedStages.includes(currentStage + 1)) {
-            setUnlockedStages(prev => [...prev, currentStage + 1]);
+            setUnlockedStagesByDifficulty(prev => ({
+              ...prev,
+              [difficulty]: [...prev[difficulty], currentStage + 1],
+            }));
           }
-          // 퍽 선택 생성
-          const shuffled = [...PERKS].sort(() => Math.random() - 0.5);
+          // 퍽 선택 생성 (최대 레벨 퍽은 제외)
+          const availablePerks = PERKS.filter(perk => {
+            const currentLevel = perks.find(p => p.id === perk.id)?.level || 0;
+            return currentLevel < PERK_MAX_LEVEL;
+          });
+          const shuffled = [...availablePerks].sort(() => Math.random() - 0.5);
           setPerkChoices(shuffled.slice(0, 3));
           setShowPerkSelect(true);
         }
@@ -837,8 +1009,9 @@ function GameBoard() {
         const dx = targetPos.x - enemy.x;
         const dy = targetPos.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < enemy.speed) { enemy.x = targetPos.x; enemy.y = targetPos.y; enemy.pathIndex++; }
-        else { enemy.x += (dx / distance) * enemy.speed; enemy.y += (dy / distance) * enemy.speed; }
+        const moveSpeed = enemy.speed * gameSpeedRef.current;
+        if (distance < moveSpeed) { enemy.x = targetPos.x; enemy.y = targetPos.y; enemy.pathIndex++; }
+        else { enemy.x += (dx / distance) * moveSpeed; enemy.y += (dy / distance) * moveSpeed; }
       }
 
       // 타워 공격
@@ -853,7 +1026,8 @@ function GameBoard() {
           range: rawStats.range * perkRangeMult,
           attackInterval: Math.max(150, Math.round(rawStats.attackInterval / perkSpdDiv)),
         };
-        if (currentTime - tower.lastAttackTime < stats.attackInterval) continue;
+        const effectiveInterval = stats.attackInterval / gameSpeedRef.current;
+        if (currentTime - tower.lastAttackTime < effectiveInterval) continue;
 
         const towerPos = gridToPixel(tower.row, tower.col);
         const rangeInPixels = stats.range * cellSize;
@@ -901,7 +1075,7 @@ function GameBoard() {
       }
 
       // 투사체
-      const projectileSpeed = cellSize * 0.2;
+      const projectileSpeed = cellSize * 0.2 * gameSpeedRef.current;
       for (let i = projectiles.length - 1; i >= 0; i--) {
         const projectile = projectiles[i];
         const targetEnemy = enemies.find((e) => e.id === projectile.targetId);
@@ -1038,7 +1212,7 @@ function GameBoard() {
   if (gameState === 'menu') {
     return (
       <div className="menu-container">
-        <h1 className="game-title">타워 디펜스</h1>
+        <h1 className="game-title">Core Guardian</h1>
         <p className="menu-desc">각자만의 특성이 있는 타워 블록으로<br/>기지를 지켜보세요!</p>
         <div className="difficulty-section">
           <div className="section-label">난이도</div>
@@ -1056,9 +1230,15 @@ function GameBoard() {
           <button className="start-btn" onClick={() => { playSoundEffect('click'); setGameState('stageSelect'); }}>게임 시작</button>
           <button className="tutorial-btn" onClick={() => { playSoundEffect('click'); setTutorialPage(0); setGameState('tutorial'); }}>📖 튜토리얼</button>
         </div>
-        <button className="sound-toggle" onClick={() => setSoundEnabled(!soundEnabled)}>
-          {soundEnabled ? '🔊 사운드 ON' : '🔇 사운드 OFF'}
-        </button>
+        <div className="menu-bottom-btns">
+          <button className="sound-toggle" onClick={() => setSoundEnabled(!soundEnabled)}>
+            {soundEnabled ? '🔊 사운드 ON' : '🔇 사운드 OFF'}
+          </button>
+          <button className="reset-data-btn" onClick={resetAllData}>
+            🗑️ 데이터 초기화
+          </button>
+        </div>
+        <div className="version-display">Core Guardian v{GAME_VERSION}</div>
       </div>
     );
   }
@@ -1107,23 +1287,60 @@ function GameBoard() {
         <div className="menu-desc">난이도: {DIFFICULTY_SETTINGS[difficulty].name}</div>
 
         {/* 보유 퍽 표시 */}
-        {perks.length > 0 && (
-          <div className="perks-display">
-            <div className="section-label">보유 고유 특성</div>
-            <div className="perks-list">
-              {[...new Set(perks)].map(perkId => {
-                const perk = PERKS.find(p => p.id === perkId);
-                const count = perks.filter(p => p === perkId).length;
-                return (
-                  <div key={perkId} className="perk-badge">
-                    <span>{perk.icon}</span>
-                    <span>{perk.name}{count > 1 ? ` x${count}` : ''}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <div className="perks-display">
+          <div className="section-label">보유 고유 특성</div>
+          {perks.length > 0 ? (
+            <>
+              <div className="perks-grid">
+                {perks.map(perkData => {
+                  const perk = PERKS.find(p => p.id === perkData.id);
+                  if (!perk) return null;
+                  const isSelected = expandedPerkId === perk.id;
+                  return (
+                    <div
+                      key={perk.id}
+                      className={`perk-icon-btn ${isSelected ? 'selected' : ''}`}
+                      onClick={() => setExpandedPerkId(isSelected ? null : perk.id)}
+                    >
+                      <span className="perk-icon">{perk.icon}</span>
+                      <span className="perk-icon-level">Lv.{perkData.level}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 선택된 특성 설명 */}
+              {expandedPerkId && (
+                <div className="perk-detail-box">
+                  {(() => {
+                    const perk = PERKS.find(p => p.id === expandedPerkId);
+                    const currentLevel = perks.find(p => p.id === expandedPerkId)?.level || 0;
+                    return (
+                      <>
+                        <div className="perk-detail-header">
+                          <span>{perk.icon}</span>
+                          <span className="perk-detail-name">{perk.name}</span>
+                          <span className="perk-detail-level">Lv.{currentLevel}/{PERK_MAX_LEVEL}</span>
+                        </div>
+                        <div className="perk-detail-desc">{perk.desc}</div>
+                        <div className="perk-detail-levels">
+                          {perk.levels.map((lvl, i) => (
+                            <div key={i} className={`perk-detail-row ${currentLevel >= i + 1 ? 'active' : ''}`}>
+                              <span>Lv.{i + 1}</span>
+                              <span>{lvl}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="perks-empty">스테이지 클리어 시 획득</div>
+          )}
+        </div>
 
         <div className="stage-grid">
           {Array.from({ length: MAX_STAGES }, (_, i) => i + 1).map((stage) => {
@@ -1192,14 +1409,31 @@ function GameBoard() {
           <div className="game-submessage">Stage {currentStage} 클리어!</div>
           <div className="perk-select-title">고유 특성을 선택하세요</div>
           <div className="perk-select-list">
-            {perkChoices.map((perk) => (
-              <button key={perk.id} className="perk-select-item" onClick={() => selectPerk(perk.id)}>
-                <div className="perk-select-icon">{perk.icon}</div>
-                <div className="perk-select-name">{perk.name}</div>
-                <div className="perk-select-desc">{perk.desc}</div>
-              </button>
-            ))}
+            {perkChoices.map((perk) => {
+              const currentLevel = perks.find(p => p.id === perk.id)?.level || 0;
+              const nextLevel = currentLevel + 1;
+              return (
+                <button key={perk.id} className="perk-select-item" onClick={() => selectPerk(perk.id)}>
+                  <div className="perk-select-icon">{perk.icon}</div>
+                  <div className="perk-select-info">
+                    <div className="perk-select-name">
+                      {perk.name}
+                      {currentLevel > 0 && <span className="perk-current-level">Lv.{currentLevel}</span>}
+                      <span className="perk-next-level">→ Lv.{nextLevel}</span>
+                    </div>
+                    <div className="perk-select-desc">{perk.desc}</div>
+                    <div className="perk-select-effect">{perk.levels[nextLevel - 1]}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
+          {perkChoices.length === 0 && (
+            <div className="perk-select-empty">
+              <div>모든 특성이 최대 레벨입니다!</div>
+              <button className="menu-btn" onClick={() => { setShowPerkSelect(false); playSoundEffect('click'); }}>확인</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1252,8 +1486,31 @@ function GameBoard() {
         {!roundInProgress && currentRound < MAX_ROUNDS && !gameOver && !gameWon ? (
           <button className="round-btn" onClick={startRound}>▶ Round {currentRound + 1}</button>
         ) : roundInProgress ? (
-          <div className="round-status">전투 중...</div>
+          <div className="round-status">{isPaused ? '일시정지' : '전투 중...'}</div>
         ) : null}
+      </div>
+
+      {/* 일시정지 & 속도 조절 */}
+      <div className="game-controls">
+        <button
+          className={`control-btn ${isPaused ? 'active' : ''}`}
+          onClick={() => setIsPaused(!isPaused)}
+          disabled={gameOver || gameWon}
+        >
+          {isPaused ? '▶' : '⏸'}
+        </button>
+        <div className="speed-controls">
+          {[1, 2, 3].map((speed) => (
+            <button
+              key={speed}
+              className={`speed-btn ${gameSpeed === speed ? 'active' : ''}`}
+              onClick={() => setGameSpeed(speed)}
+              disabled={gameOver || gameWon}
+            >
+              {speed}x
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 타워 타입 선택 */}
@@ -1482,6 +1739,9 @@ function GameBoard() {
         <span>특성 {maxTraitsPerTower}개</span>
         {maxEvolution > 0 && <span>진화 {maxEvolution}단계</span>}
       </div>
+
+      {/* 게임 버전 */}
+      <div className="version-display">Core Guardian v{GAME_VERSION}</div>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import './App.css';
 function App() {
   return (
     <div className="app">
-      <h1>Core Guardian</h1>
       <GameBoard />
     </div>
   );
